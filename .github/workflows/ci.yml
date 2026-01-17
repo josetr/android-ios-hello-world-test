@@ -8,7 +8,7 @@ on:
 jobs:
   android:
     name: Android (unit test + debug APK)
-    runs-on: ubuntu-22.04
+    runs-on: macos-14
     defaults:
       run:
         working-directory: android/HelloWorldAndroid
@@ -25,7 +25,7 @@ jobs:
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager "platforms;android-27" "build-tools;27.0.0"
 
       - uses: gradle/actions/setup-gradle@v3
         with:
@@ -45,13 +45,14 @@ jobs:
       - name: Maestro (Android)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          emulator-boot-timeout: 900
-          disable-animations: true
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
+          api-level: 27
+          target: default
+          arch: arm64-v8a
+          profile: Nexus 4
+          emulator-options: -no-window -no-boot-anim -no-audio -no-snapshot-load
           script: |
+            adb wait-for-device
+            adb shell input keyevent 82
             cd "$GITHUB_WORKSPACE/android/HelloWorldAndroid"
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             "$HOME/.maestro/bin/maestro" test "$GITHUB_WORKSPACE/.maestro/android"
@@ -78,7 +79,7 @@ jobs:
 
   ios:
     name: iOS (UI test + .app artifact + Maestro)
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
@@ -110,7 +111,7 @@ jobs:
             -project ios/HelloWorldIOS/HelloWorldIOS.xcodeproj \
             -scheme HelloWorldIOS \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -destination "platform=iOS Simulator,name=Any iOS Simulator Device" \
             -derivedDataPath build/ios \
             CODE_SIGNING_ALLOWED=NO
 
@@ -123,7 +124,7 @@ jobs:
 
       - name: Maestro (iOS)
         run: |
-          SIM_NAME="iPhone 16"
+          SIM_NAME="iPhone 15"
           SIM_UDID="$(
             xcrun simctl list devices available \
               | grep -F -m 1 "${SIM_NAME} (" \
@@ -157,7 +158,7 @@ jobs:
 
   flutter_android:
     name: Flutter (tests + coverage + Maestro Android)
-    runs-on: ubuntu-22.04
+    runs-on: macos-14
     defaults:
       run:
         working-directory: flutter
@@ -179,6 +180,13 @@ jobs:
       - name: Test + coverage
         run: flutter test --coverage
 
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-27" "build-tools;27.0.0"
+
       - name: Build APK
         run: flutter build apk --debug
 
@@ -190,12 +198,13 @@ jobs:
       - name: Maestro (Flutter Android)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 27
           target: google_apis
-          arch: x86_64
+          arch: arm64-v8a
+          force-avd-creation: true
           emulator-boot-timeout: 900
           disable-animations: true
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -wipe-data
           script: |
             cd "$GITHUB_WORKSPACE/flutter"
             DEVICE_ID="$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')"
@@ -223,7 +232,7 @@ jobs:
 
   flutter_ios:
     name: Flutter (tests + coverage + Maestro iOS)
-    runs-on: macos-latest
+    runs-on: macos-14
     defaults:
       run:
         working-directory: flutter
@@ -251,11 +260,12 @@ jobs:
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "MAESTRO_PATH=$HOME/.maestro/bin/maestro" >> $GITHUB_ENV
           "$HOME/.maestro/bin/maestro" --version
 
       - name: Maestro (Flutter iOS)
         run: |
-          SIM_NAME="iPhone 17"
+          SIM_NAME="iPhone 15"
           SIM_UDID="$(
             xcrun simctl list devices available \
               | grep -F -m 1 "${SIM_NAME} (" \

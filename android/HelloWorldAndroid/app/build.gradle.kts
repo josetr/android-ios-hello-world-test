@@ -1,10 +1,10 @@
 import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.gradle.testing.jacoco.tasks.JacocoTaskExtension
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    jacoco
+    id("jacoco")
 }
 
 android {
