@@ -1,6 +1,10 @@
+import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.testing.jacoco.tasks.JacocoTaskExtension
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    jacoco
 }
 
 android {
@@ -41,6 +45,54 @@ android {
     }
 }
 
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+android.testOptions.unitTests.all {
+    it.extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val kotlinClasses = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+        exclude(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+        )
+    }
+    val javaClasses = fileTree(layout.buildDirectory.dir("intermediates/javac/debug/classes")) {
+        exclude(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+        )
+    }
+
+    classDirectories.setFrom(files(kotlinClasses, javaClasses))
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include(
+                "jacoco/testDebugUnitTest.exec",
+                "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec",
+            )
+        },
+    )
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
@@ -50,4 +102,3 @@ dependencies {
     testImplementation("androidx.test:core-ktx:1.5.0")
     testImplementation("org.robolectric:robolectric:4.11.1")
 }
-

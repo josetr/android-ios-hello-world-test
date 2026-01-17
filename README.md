@@ -7,8 +7,8 @@ Two tiny native apps:
 
 CI runs:
 
-- Android Robolectric test to verify the `"Hello World"` label is shown and changes after a button tap
-- iOS XCUITest to verify the `"Hello World"` label is shown and changes after a button tap
+- Android Robolectric test + Jacoco coverage report
+- iOS XCUITest + xccov coverage report
 
 Maestro flows live in `.maestro/` (see `.maestro/README.md`).
 
@@ -16,3 +16,8 @@ Quick local runs:
 
 - Android: `./scripts/maestro-android.sh`
 - iOS: `./scripts/maestro-ios.sh`
+
+Coverage (local):
+
+- Android: `cd android/HelloWorldAndroid && ./gradlew testDebugUnitTest jacocoTestReport` (HTML report under `app/build/reports/jacoco/jacocoTestReport/html`)
+- iOS: run `xcodebuild test -enableCodeCoverage YES ... -resultBundlePath <path>.xcresult` then `xcrun xccov view --report <path>.xcresult`

@@ -33,7 +33,7 @@ jobs:
 
       - name: Test + assemble
         run: |
-          gradle --no-daemon testDebugUnitTest assembleDebug
+          gradle --no-daemon testDebugUnitTest jacocoTestReport assembleDebug
 
       - name: Install Maestro
         run: |
@@ -66,6 +66,13 @@ jobs:
           name: android-unit-test-report
           path: android/HelloWorldAndroid/app/build/reports/tests/testDebugUnitTest
 
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-coverage-report
+          path: android/HelloWorldAndroid/app/build/reports/jacoco/jacocoTestReport
+
   ios:
     name: iOS (UI test + .app artifact + Maestro)
     runs-on: macos-latest
@@ -80,7 +87,19 @@ jobs:
             -sdk iphonesimulator \
             -destination "platform=iOS Simulator,name=iPhone 17" \
             -derivedDataPath build/ios \
+            -resultBundlePath build/ios/test-results.xcresult \
+            -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Coverage report
+        if: always()
+        run: |
+          if [ -d "build/ios/test-results.xcresult" ]; then
+            xcrun xccov view --report build/ios/test-results.xcresult > build/ios/coverage.txt
+            xcrun xccov view --report --json build/ios/test-results.xcresult > build/ios/coverage.json
+          else
+            echo "No test result bundle found at build/ios/test-results.xcresult"
+          fi
 
       - name: Build .app (simulator)
         run: |
@@ -110,3 +129,12 @@ jobs:
         with:
           name: ios-simulator-app
           path: build/ios/Build/Products/Debug-iphonesimulator/HelloWorldIOS.app
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-coverage-report
+          path: |
+            build/ios/coverage.txt
+            build/ios/coverage.json
