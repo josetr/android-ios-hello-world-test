@@ -1,0 +1,9 @@
+appId: com.example.helloworldandroid
+---
+- launchApp
+- assertVisible:
+    id: "com.example.helloworldandroid:id/hello_text"
+- assertVisible: "Hello World"
+- tapOn:
+    id: "com.example.helloworldandroid:id/hello_button"
+- assertVisible: "Hello Button"

@@ -35,6 +35,24 @@ jobs:
         run: |
           gradle --no-daemon testDebugUnitTest assembleDebug
 
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+          echo "MAESTRO_PATH=$HOME/.maestro/bin/maestro" >> $GITHUB_ENV
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Maestro (Android)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          script: |
+            cd "$GITHUB_WORKSPACE/android/HelloWorldAndroid"
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            "$HOME/.maestro/bin/maestro" test "$GITHUB_WORKSPACE/.maestro/android"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -49,7 +67,7 @@ jobs:
           path: android/HelloWorldAndroid/app/build/reports/tests/testDebugUnitTest
 
   ios:
-    name: iOS (UI test + .app artifact)
+    name: iOS (UI test + .app artifact + Maestro)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +92,19 @@ jobs:
             -derivedDataPath build/ios \
             CODE_SIGNING_ALLOWED=NO
 
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+          echo "MAESTRO_PATH=$HOME/.maestro/bin/maestro" >> $GITHUB_ENV
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Maestro (iOS)
+        run: |
+          xcrun simctl bootstatus booted -b
+          xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/HelloWorldIOS.app
+          "$HOME/.maestro/bin/maestro" test .maestro/ios
+          
       - name: Upload .app
         uses: actions/upload-artifact@v4
         with:
