@@ -8,7 +8,7 @@ on:
 jobs:
   android:
     name: Android (unit test + debug APK)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: android/HelloWorldAndroid
@@ -48,6 +48,9 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
+          emulator-boot-timeout: 900
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
           script: |
             cd "$GITHUB_WORKSPACE/android/HelloWorldAndroid"
             adb install -r app/build/outputs/apk/debug/app-debug.apk
@@ -85,7 +88,7 @@ jobs:
             -project ios/HelloWorldIOS/HelloWorldIOS.xcodeproj \
             -scheme HelloWorldIOS \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 17" \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
             -derivedDataPath build/ios \
             -resultBundlePath build/ios/test-results.xcresult \
             -enableCodeCoverage YES \
@@ -107,7 +110,7 @@ jobs:
             -project ios/HelloWorldIOS/HelloWorldIOS.xcodeproj \
             -scheme HelloWorldIOS \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 17" \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
             -derivedDataPath build/ios \
             CODE_SIGNING_ALLOWED=NO
 
@@ -120,8 +123,21 @@ jobs:
 
       - name: Maestro (iOS)
         run: |
-          xcrun simctl bootstatus booted -b
-          xcrun simctl install booted build/ios/Build/Products/Debug-iphonesimulator/HelloWorldIOS.app
+          SIM_NAME="iPhone 16"
+          SIM_UDID="$(
+            xcrun simctl list devices available \
+              | grep -F -m 1 "${SIM_NAME} (" \
+              | sed -E 's/.*\\(([0-9A-F-]+)\\).*/\\1/'
+          )"
+          if [ -z "$SIM_UDID" ]; then
+            echo "Could not find simulator UDID for: $SIM_NAME"
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          xcrun simctl boot "$SIM_UDID" || true
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          xcrun simctl install "$SIM_UDID" build/ios/Build/Products/Debug-iphonesimulator/HelloWorldIOS.app
           "$HOME/.maestro/bin/maestro" test .maestro/ios
           
       - name: Upload .app
