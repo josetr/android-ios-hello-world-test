@@ -1,9 +1,3 @@
 appId: com.example.HelloWorldIOS
 ---
-- launchApp
-- assertVisible:
-    id: helloLabel
-- assertVisible: "Hello World"
-- tapOn:
-    id: helloButton
-- assertVisible: "Hello Button"
+- runFlow: ../flows/hello-world.yaml

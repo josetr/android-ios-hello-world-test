@@ -1,0 +1,4 @@
+- launchApp
+- assertVisible: "Hello World"
+- tapOn: "Tap me"
+- assertVisible: "Hello Button"
