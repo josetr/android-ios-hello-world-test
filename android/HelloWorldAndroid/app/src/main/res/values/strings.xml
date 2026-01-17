@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">HelloWorldAndroid</string>
+    <string name="hello_world">Hello World</string>
+    <string name="tap_me">Tap me</string>
+    <string name="hello_button">Hello Button</string>
+</resources>
+

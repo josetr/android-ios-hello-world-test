@@ -1,0 +1,17 @@
+.DS_Store
+
+# Android
+**/.gradle/
+**/build/
+**/captures/
+**/*.iml
+
+# iOS / Xcode
+**/DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
+**/*.moved-aside
+**/*.xccheckout
+**/*.xcscmblueprint
+build/
+
