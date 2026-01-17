@@ -154,3 +154,135 @@ jobs:
           path: |
             build/ios/coverage.txt
             build/ios/coverage.json
+
+  flutter_android:
+    name: Flutter (tests + coverage + Maestro Android)
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.6"
+          channel: "stable"
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Test + coverage
+        run: flutter test --coverage
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Maestro (Flutter Android)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          emulator-boot-timeout: 900
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
+          script: |
+            cd "$GITHUB_WORKSPACE/flutter"
+            DEVICE_ID="$(adb devices | awk 'NR>1 && $2=="device"{print $1; exit}')"
+            if [ -z "$DEVICE_ID" ]; then
+              echo "No Android device found for Flutter integration test"
+              adb devices
+              exit 1
+            fi
+            flutter -d "$DEVICE_ID" test integration_test
+            adb install -r build/app/outputs/flutter-apk/app-debug.apk
+            "$HOME/.maestro/bin/maestro" test "$GITHUB_WORKSPACE/.maestro/flutter/android"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-android-debug-apk
+          path: flutter/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-android-coverage
+          path: flutter/coverage/lcov.info
+
+  flutter_ios:
+    name: Flutter (tests + coverage + Maestro iOS)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.6"
+          channel: "stable"
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Test + coverage
+        run: flutter test --coverage
+
+      - name: Build iOS .app (simulator)
+        run: flutter build ios --simulator --no-codesign
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Maestro (Flutter iOS)
+        run: |
+          SIM_NAME="iPhone 17"
+          SIM_UDID="$(
+            xcrun simctl list devices available \
+              | grep -F -m 1 "${SIM_NAME} (" \
+              | sed -E 's/.*\\(([0-9A-F-]+)\\).*/\\1/'
+          )"
+          if [ -z "$SIM_UDID" ]; then
+            echo "Could not find simulator UDID for: $SIM_NAME"
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          xcrun simctl boot "$SIM_UDID" || true
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          cd "$GITHUB_WORKSPACE/flutter"
+          flutter -d "$SIM_UDID" test integration_test
+          xcrun simctl install "$SIM_UDID" build/ios/iphonesimulator/Runner.app
+          "$HOME/.maestro/bin/maestro" test "$GITHUB_WORKSPACE/.maestro/flutter/ios"
+
+      - name: Upload .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-ios-simulator-app
+          path: flutter/build/ios/iphonesimulator/Runner.app
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-ios-coverage
+          path: flutter/coverage/lcov.info

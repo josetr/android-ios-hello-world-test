@@ -4,11 +4,13 @@ Two tiny native apps:
 
 - Android: `android/HelloWorldAndroid` (Kotlin, View + Button)
 - iOS: `ios/HelloWorldIOS` (SwiftUI + Button)
+- Flutter: `flutter/` (Flutter, Text + Button)
 
 CI runs:
 
 - Android Robolectric test + Jacoco coverage report
 - iOS XCUITest + xccov coverage report
+- Flutter widget/integration tests + coverage + Maestro (Android/iOS)
 
 Maestro flows live in `.maestro/` (see `.maestro/README.md`).
 
